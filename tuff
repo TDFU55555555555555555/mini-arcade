@@ -1,0 +1,310 @@
+index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mini Arcade | Play Games</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #2c3e50, #34495e);
+      color: #ecf0f1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
+    }
+    header {
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    .menu, .game-container {
+      text-align: center;
+      margin-top: 20px;
+    }
+    button {
+      background: #27ae60;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      margin: 10px;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover {
+      background: #2ecc71;
+    }
+    canvas {
+      border: 4px solid #ecf0f1;
+      background: #000;
+      margin-top: 20px;
+      display: none;
+    }
+    #score {
+      margin-top: 15px;
+      font-size: 1.2rem;
+    }
+    footer {
+      position: absolute;
+      bottom: 10px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #bdc3c7;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🎮 Mini Arcade</h1>
+    <p>Select a game to play</p>
+  </header>
+
+  <!-- Game Menu -->
+  <div class="menu" id="menu">
+    <button onclick="startSnake()">🐍 Play Snake</button>
+    <button onclick="startPong()">🏓 Play Pong</button>
+    <button onclick="startTicTacToe()">❌⭕ Play Tic-Tac-Toe</button>
+  </div>
+
+  <!-- Game Area -->
+  <div class="game-container" id="gameContainer">
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div id="score"></div>
+    <button onclick="backToMenu()">⬅️ Back to Menu</button>
+  </div>
+
+  <footer>Made with ❤️ by ChatGPT</footer>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const scoreEl = document.getElementById("score");
+    const menu = document.getElementById("menu");
+    const gameContainer = document.getElementById("gameContainer");
+
+    let gameInterval;
+    let currentGame = null;
+
+    function backToMenu() {
+      clearInterval(gameInterval);
+      canvas.style.display = "none";
+      scoreEl.textContent = "";
+      menu.style.display = "block";
+    }
+
+    /* ---------------- SNAKE GAME ---------------- */
+    function startSnake() {
+      menu.style.display = "none";
+      canvas.style.display = "block";
+      scoreEl.textContent = "Score: 0";
+      currentGame = "snake";
+
+      const box = 20;
+      let snake = [{x: 9 * box, y: 10 * box}];
+      let direction;
+      let food = {x: Math.floor(Math.random()*19+1) * box, y: Math.floor(Math.random()*19+1) * box};
+      let score = 0;
+
+      document.onkeydown = e => {
+        if(e.key === "ArrowLeft" && direction !== "RIGHT") direction = "LEFT";
+        else if(e.key === "ArrowUp" && direction !== "DOWN") direction = "UP";
+        else if(e.key === "ArrowRight" && direction !== "LEFT") direction = "RIGHT";
+        else if(e.key === "ArrowDown" && direction !== "UP") direction = "DOWN";
+      };
+
+      function drawSnake() {
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        for(let i=0; i<snake.length; i++) {
+          ctx.fillStyle = (i===0) ? "#27ae60" : "#2ecc71";
+          ctx.fillRect(snake[i].x, snake[i].y, box, box);
+        }
+
+        ctx.fillStyle = "#e74c3c";
+        ctx.fillRect(food.x, food.y, box, box);
+
+        let snakeX = snake[0].x;
+        let snakeY = snake[0].y;
+
+        if(direction === "LEFT") snakeX -= box;
+        if(direction === "UP") snakeY -= box;
+        if(direction === "RIGHT") snakeX += box;
+        if(direction === "DOWN") snakeY += box;
+
+        if(snakeX === food.x && snakeY === food.y) {
+          score++;
+          scoreEl.textContent = "Score: " + score;
+          food = {x: Math.floor(Math.random()*19+1)*box, y: Math.floor(Math.random()*19+1)*box};
+        } else {
+          snake.pop();
+        }
+
+        let newHead = {x: snakeX, y: snakeY};
+
+        if(snakeX<0 || snakeY<0 || snakeX>=canvas.width || snakeY>=canvas.height || snake.some(p => p.x===newHead.x && p.y===newHead.y)) {
+          clearInterval(gameInterval);
+          alert("Game Over! Score: " + score);
+          backToMenu();
+        }
+
+        snake.unshift(newHead);
+      }
+
+      gameInterval = setInterval(drawSnake, 100);
+    }
+
+    /* ---------------- PONG GAME ---------------- */
+    function startPong() {
+      menu.style.display = "none";
+      canvas.style.display = "block";
+      scoreEl.textContent = "Move with ↑ and ↓ keys";
+
+      let paddleHeight = 80, paddleWidth = 10;
+      let leftY = canvas.height/2 - paddleHeight/2;
+      let rightY = canvas.height/2 - paddleHeight/2;
+      let ballX = canvas.width/2, ballY = canvas.height/2;
+      let ballRadius = 8;
+      let ballSpeedX = 4, ballSpeedY = 2;
+      let upPressed = false, downPressed = false;
+
+      document.onkeydown = e => { if(e.key==="ArrowUp") upPressed=true; if(e.key==="ArrowDown") downPressed=true; };
+      document.onkeyup = e => { if(e.key==="ArrowUp") upPressed=false; if(e.key==="ArrowDown") downPressed=false; };
+
+      function drawPong() {
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+
+        // left paddle
+        ctx.fillStyle = "#27ae60";
+        ctx.fillRect(0,leftY,paddleWidth,paddleHeight);
+        // right paddle
+        ctx.fillStyle = "#e67e22";
+        ctx.fillRect(canvas.width-paddleWidth,rightY,paddleWidth,paddleHeight);
+
+        // ball
+        ctx.beginPath();
+        ctx.arc(ballX, ballY, ballRadius, 0, Math.PI*2);
+        ctx.fillStyle = "#ecf0f1";
+        ctx.fill();
+
+        // move paddles
+        if(upPressed && leftY>0) leftY -= 5;
+        if(downPressed && leftY<canvas.height-paddleHeight) leftY += 5;
+
+        // simple AI for right paddle
+        if(rightY + paddleHeight/2 < ballY) rightY += 3;
+        else rightY -= 3;
+
+        // move ball
+        ballX += ballSpeedX;
+        ballY += ballSpeedY;
+
+        if(ballY+ballRadius>canvas.height || ballY-ballRadius<0) ballSpeedY = -ballSpeedY;
+
+        // paddle collisions
+        if(ballX-ballRadius< paddleWidth && ballY>leftY && ballY<leftY+paddleHeight) ballSpeedX = -ballSpeedX;
+        if(ballX+ballRadius>canvas.width-paddleWidth && ballY>rightY && ballY<rightY+paddleHeight) ballSpeedX = -ballSpeedX;
+
+        // out of bounds
+        if(ballX<0 || ballX>canvas.width) {
+          clearInterval(gameInterval);
+          alert("Game Over!");
+          backToMenu();
+        }
+      }
+
+      gameInterval = setInterval(drawPong, 30);
+    }
+
+    /* ---------------- TIC-TAC-TOE ---------------- */
+    function startTicTacToe() {
+      menu.style.display = "none";
+      canvas.style.display = "block";
+      scoreEl.textContent = "Click to place X or O";
+
+      let board = Array(9).fill(null);
+      let currentPlayer = "X";
+
+      canvas.onclick = function(evt) {
+        let rect = canvas.getBoundingClientRect();
+        let x = evt.clientX - rect.left;
+        let y = evt.clientY - rect.top;
+        let col = Math.floor(x / (canvas.width/3));
+        let row = Math.floor(y / (canvas.height/3));
+        let index = row*3+col;
+
+        if(!board[index]) {
+          board[index] = currentPlayer;
+          currentPlayer = (currentPlayer==="X") ? "O" : "X";
+          drawTicTacToe();
+        }
+      };
+
+      function drawTicTacToe() {
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+
+        ctx.strokeStyle = "#ecf0f1";
+        ctx.lineWidth = 4;
+
+        for(let i=1;i<3;i++){
+          ctx.beginPath();
+          ctx.moveTo(i*canvas.width/3,0);
+          ctx.lineTo(i*canvas.width/3,canvas.height);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(0,i*canvas.height/3);
+          ctx.lineTo(canvas.width,i*canvas.height/3);
+          ctx.stroke();
+        }
+
+        ctx.font = "80px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        for(let i=0;i<9;i++){
+          if(board[i]){
+            let row = Math.floor(i/3);
+            let col = i%3;
+            ctx.fillStyle = (board[i]==="X")?"#e74c3c":"#3498db";
+            ctx.fillText(board[i], col*canvas.width/3+canvas.width/6, row*canvas.height/3+canvas.height/6);
+          }
+        }
+
+        let winner = checkWinner();
+        if(winner){
+          setTimeout(()=>{
+            alert(winner+" wins!");
+            backToMenu();
+          },100);
+        } else if(board.every(cell=>cell)){
+          setTimeout(()=>{
+            alert("It's a draw!");
+            backToMenu();
+          },100);
+        }
+      }
+
+      function checkWinner(){
+        const wins=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+        for(let combo of wins){
+          let [a,b,c]=combo;
+          if(board[a] && board[a]===board[b] && board[a]===board[c]) return board[a];
+        }
+        return null;
+      }
+
+      drawTicTacToe();
+    }
+  </script>
+</body>
+</html>
