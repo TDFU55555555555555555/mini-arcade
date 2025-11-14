@@ -1,310 +1,450 @@
-index.html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mini Arcade | Play Games</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #2c3e50, #34495e);
-      color: #ecf0f1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      height: 100vh;
-    }
-    header {
-      text-align: center;
-      padding: 20px;
-    }
-    h1 {
-      margin-bottom: 10px;
-    }
-    .menu, .game-container {
-      text-align: center;
-      margin-top: 20px;
-    }
-    button {
-      background: #27ae60;
-      border: none;
-      color: white;
-      padding: 10px 20px;
-      margin: 10px;
-      border-radius: 8px;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-    button:hover {
-      background: #2ecc71;
-    }
-    canvas {
-      border: 4px solid #ecf0f1;
-      background: #000;
-      margin-top: 20px;
-      display: none;
-    }
-    #score {
-      margin-top: 15px;
-      font-size: 1.2rem;
-    }
-    footer {
-      position: absolute;
-      bottom: 10px;
-      text-align: center;
-      font-size: 0.9rem;
-      color: #bdc3c7;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CRITICAL: Instructs search engines not to index this page -->
+    <meta name="robots" content="noindex, nofollow">
+    <title>Personal Project Hub</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for fullscreen player and aesthetics */
+        :root {
+            --primary-color: #7c3aed; /* Violet 600 */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1f2937; /* Darker gray background */
+            min-height: 100vh;
+        }
+        .container-bg {
+            background-color: #374151; /* Medium gray for the main container */
+        }
+        .project-player-area {
+            height: 400px; /* Default height for the iframe container */
+            transition: all 0.3s ease;
+        }
+        .project-player-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .fullscreen-player-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 50;
+            background-color: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+        }
+        .fullscreen-player-iframe {
+            flex-grow: 1;
+            width: 100%;
+            border: none;
+        }
+        /* Custom scrollbar for better look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #374151;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #9ca3af;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #7c3aed;
+        }
+    </style>
 </head>
-<body>
-  <header>
-    <h1>🎮 Mini Arcade</h1>
-    <p>Select a game to play</p>
-  </header>
+<body class="p-4 md:p-8">
 
-  <!-- Game Menu -->
-  <div class="menu" id="menu">
-    <button onclick="startSnake()">🐍 Play Snake</button>
-    <button onclick="startPong()">🏓 Play Pong</button>
-    <button onclick="startTicTacToe()">❌⭕ Play Tic-Tac-Toe</button>
-  </div>
+    <!-- Passcode Authentication Screen -->
+    <div id="authScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 transition-opacity duration-300">
+        <div class="bg-gray-700 p-8 rounded-xl shadow-2xl w-96 max-w-sm">
+            <h2 class="text-3xl font-extrabold text-white mb-6 text-center">Project Hub Access</h2>
+            <p class="text-gray-300 mb-4 text-center">Enter the secret passcode to unlock your hub.</p>
+            <form id="passcodeForm" onsubmit="handlePasscode(event)">
+                <input type="password" id="passcodeInput" class="w-full p-3 mb-4 rounded-lg bg-gray-800 text-white placeholder-gray-400 focus:ring-violet-500 focus:border-violet-500" placeholder="Passcode (e.g., 1234)" required>
+                <button type="submit" class="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-lg transition duration-200 shadow-md">Enter Hub</button>
+            </form>
+            <p id="passcodeError" class="text-red-400 text-center mt-4 hidden">Incorrect passcode. Try again!</p>
+        </div>
+    </div>
 
-  <!-- Game Area -->
-  <div class="game-container" id="gameContainer">
-    <canvas id="gameCanvas" width="400" height="400"></canvas>
-    <div id="score"></div>
-    <button onclick="backToMenu()">⬅️ Back to Menu</button>
-  </div>
+    <!-- Main Application Container (Hidden until authenticated) -->
+    <div id="appContainer" class="max-w-7xl mx-auto container-bg rounded-2xl shadow-2xl p-4 md:p-8 hidden">
+        <h1 class="text-4xl font-black text-white mb-2 text-center">
+            Personal Project Hub
+        </h1>
+        <p class="text-gray-400 text-center mb-6">
+            User ID: <span id="currentUserId" class="font-mono text-xs bg-gray-700 p-1 rounded-md">Connecting...</span>
+        </p>
 
-  <footer>Made with ❤️ by ChatGPT</footer>
+        <!-- Global Status and Error Messages -->
+        <div id="statusMessage" class="hidden p-3 mb-6 bg-violet-800 text-white rounded-lg font-medium shadow-lg"></div>
 
-  <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    const scoreEl = document.getElementById("score");
-    const menu = document.getElementById("menu");
-    const gameContainer = document.getElementById("gameContainer");
+        <!-- Project Player Area -->
+        <div class="mb-8 p-4 bg-gray-800 rounded-xl shadow-xl">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-2xl font-bold text-white">Project Player Area</h2>
+                <div class="flex items-center space-x-2">
+                    <button id="fullscreenButton" onclick="toggleFullscreen()" class="p-2 rounded-full bg-gray-700 text-white hover:bg-violet-600 transition duration-200" title="Go Fullscreen">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+                    </button>
+                    <span id="currentProjectTitle" class="text-gray-400 font-medium italic">No project loaded</span>
+                </div>
+            </div>
+            <div id="projectPlayerContainer" class="project-player-area rounded-lg overflow-hidden border-4 border-gray-700 shadow-inner">
+                <iframe id="projectPlayer" class="project-player-iframe" src="about:blank"></iframe>
+            </div>
+        </div>
 
-    let gameInterval;
-    let currentGame = null;
+        <!-- Game Management Panel (Admin Panel) -->
+        <div class="mb-8 p-6 bg-gray-800 rounded-xl border-4 border-violet-600 shadow-2xl">
+            <h2 class="text-2xl font-bold text-violet-400 mb-4">Project Management Panel</h2>
+            <form id="addProjectForm">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Name Input -->
+                    <div class="md:col-span-1">
+                        <label for="projectName" class="block text-sm font-medium text-gray-300 mb-1">Project Title</label>
+                        <input type="text" id="projectName" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:ring-violet-500 focus:border-violet-500 border border-gray-600" placeholder="e.g., Cool Web Game" required>
+                    </div>
 
-    function backToMenu() {
-      clearInterval(gameInterval);
-      canvas.style.display = "none";
-      scoreEl.textContent = "";
-      menu.style.display = "block";
-    }
+                    <!-- URL Input -->
+                    <div class="md:col-span-2">
+                        <label for="projectUrl" class="block text-sm font-medium text-gray-300 mb-1">Project URL (Must start with http:// or https://)</label>
+                        <input type="url" id="projectUrl" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:ring-violet-500 focus:border-violet-500 border border-gray-600" placeholder="e.g., https://cool-project.com" required>
+                    </div>
 
-    /* ---------------- SNAKE GAME ---------------- */
-    function startSnake() {
-      menu.style.display = "none";
-      canvas.style.display = "block";
-      scoreEl.textContent = "Score: 0";
-      currentGame = "snake";
+                    <!-- Description Input -->
+                    <div class="md:col-span-3">
+                        <label for="projectDescription" class="block text-sm font-medium text-gray-300 mb-1">Description (What is it?)</label>
+                        <textarea id="projectDescription" rows="2" class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:ring-violet-500 focus:border-violet-500 border border-gray-600" placeholder="A brief summary of what the project does." required></textarea>
+                    </div>
+                </div>
 
-      const box = 20;
-      let snake = [{x: 9 * box, y: 10 * box}];
-      let direction;
-      let food = {x: Math.floor(Math.random()*19+1) * box, y: Math.floor(Math.random()*19+1) * box};
-      let score = 0;
+                <div class="mt-6">
+                    <button type="submit" id="addProjectButton" disabled class="w-full py-3 bg-violet-600 opacity-50 text-white font-bold rounded-lg transition duration-200 shadow-lg hover:bg-violet-700 disabled:opacity-50">
+                        Add Project to Hub
+                    </button>
+                </div>
+            </form>
+        </div>
 
-      document.onkeydown = e => {
-        if(e.key === "ArrowLeft" && direction !== "RIGHT") direction = "LEFT";
-        else if(e.key === "ArrowUp" && direction !== "DOWN") direction = "UP";
-        else if(e.key === "ArrowRight" && direction !== "LEFT") direction = "RIGHT";
-        else if(e.key === "ArrowDown" && direction !== "UP") direction = "DOWN";
-      };
+        <!-- Projects List Area -->
+        <h2 class="text-3xl font-bold text-white mb-4">Your Project Library</h2>
+        <div id="projectsList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Project Cards will be inserted here -->
+            <p id="loadingIndicator" class="text-gray-400 col-span-full">Loading your projects...</p>
+        </div>
+    </div>
 
-      function drawSnake() {
-        ctx.fillStyle = "#000";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    <!-- Fullscreen Modal -->
+    <div id="fullscreenModal" class="hidden fullscreen-player-container">
+        <div class="p-3 flex justify-between items-center bg-gray-900 border-b border-gray-700 shadow-lg">
+            <h3 id="fullscreenTitle" class="text-xl font-bold text-white"></h3>
+            <button onclick="exitFullscreen()" class="p-2 rounded-full bg-red-600 text-white hover:bg-red-700 transition duration-200" title="Exit Fullscreen">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <iframe id="fullscreenPlayer" class="fullscreen-player-iframe" src="about:blank"></iframe>
+    </div>
 
-        for(let i=0; i<snake.length; i++) {
-          ctx.fillStyle = (i===0) ? "#27ae60" : "#2ecc71";
-          ctx.fillRect(snake[i].x, snake[i].y, box, box);
+    <!-- Firebase Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase and State Variables
+        let db = null;
+        let auth = null;
+        let userId = null;
+        let isAuthReady = false;
+
+        // Configuration
+        const COLLECTION_NAME = 'projects';
+        const CORRECT_PASSCODE = '0311'; // CHANGED from '1234' to '0311'
+        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+
+        // DOM Elements
+        const authScreen = document.getElementById('authScreen');
+        const appContainer = document.getElementById('appContainer');
+        const passcodeError = document.getElementById('passcodeError');
+        const addProjectButton = document.getElementById('addProjectButton');
+        const statusMessage = document.getElementById('statusMessage');
+        const currentUserIdSpan = document.getElementById('currentUserId');
+        const projectsList = document.getElementById('projectsList');
+        const projectPlayer = document.getElementById('projectPlayer');
+        const currentProjectTitle = document.getElementById('currentProjectTitle');
+
+        // --- Core Initialization and Authentication ---
+
+        const initializeAppAndAuth = async () => {
+            try {
+                // Initialize Firebase services
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                setLogLevel('Debug'); // Enable debug logging for troubleshooting
+
+                // Set up the Auth Listener
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        // User is signed in
+                        userId = user.uid;
+                        isAuthReady = true;
+                        currentUserIdSpan.textContent = userId;
+                        addProjectButton.disabled = false;
+                        addProjectButton.classList.remove('opacity-50');
+                        addProjectButton.textContent = 'Add Project to Hub';
+                        statusMessage.classList.add('hidden');
+
+                        // Start listening for projects only after auth is confirmed
+                        setupProjectsListener();
+                    } else {
+                        // User is signed out, attempt sign in
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                statusMessage.textContent = `CRITICAL ERROR: Failed to connect to database. Check console.`;
+                statusMessage.classList.remove('hidden', 'bg-violet-800');
+                statusMessage.classList.add('bg-red-600');
+            }
+        };
+
+        // Passcode Handler (triggered by form submit)
+        window.handlePasscode = (event) => {
+            event.preventDefault();
+            const input = document.getElementById('passcodeInput').value;
+            if (input === CORRECT_PASSCODE) {
+                authScreen.style.opacity = '0';
+                setTimeout(() => {
+                    authScreen.classList.add('hidden');
+                    appContainer.classList.remove('hidden');
+                    initializeAppAndAuth(); // Start the app initialization
+                }, 300);
+            } else {
+                passcodeError.classList.remove('hidden');
+                setTimeout(() => passcodeError.classList.add('hidden'), 2000);
+            }
+        };
+
+        // --- Firestore Operations ---
+
+        const getProjectCollectionRef = () => {
+            // Private data path: /artifacts/{appId}/users/{userId}/{collectionName}
+            return collection(db, 'artifacts', APP_ID, 'users', userId, COLLECTION_NAME);
+        };
+
+        const setupProjectsListener = () => {
+            projectsList.innerHTML = ''; // Clear the initial loading message
+            try {
+                // Query the collection (not using orderBy to avoid index issues)
+                const q = query(getProjectCollectionRef());
+
+                onSnapshot(q, (snapshot) => {
+                    projectsList.innerHTML = ''; // Clear list on every update
+                    if (snapshot.empty) {
+                        projectsList.innerHTML = '<p class="text-gray-400 col-span-full">No projects yet. Add one above!</p>';
+                        return;
+                    }
+
+                    snapshot.forEach((doc) => {
+                        const project = doc.data();
+                        project.id = doc.id;
+                        renderProjectCard(project);
+                    });
+
+                    // Re-attach event listeners for launch/delete buttons after rendering
+                    attachEventListeners();
+                }, (error) => {
+                    console.error("Error listening to projects:", error);
+                    statusMessage.textContent = `Error loading projects: ${error.message}`;
+                    statusMessage.classList.remove('hidden', 'bg-violet-800');
+                    statusMessage.classList.add('bg-red-600');
+                });
+            } catch (error) {
+                console.error("Error setting up project listener:", error);
+            }
+        };
+
+        // Add Project Function (Attached to form submit)
+        const addProjectForm = document.getElementById('addProjectForm');
+        addProjectForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!isAuthReady || !userId) {
+                statusMessage.textContent = "Error: Hub not fully connected yet. Please wait a moment.";
+                statusMessage.classList.remove('hidden', 'bg-violet-800');
+                statusMessage.classList.add('bg-red-600');
+                return;
+            }
+
+            const nameInput = document.getElementById('projectName');
+            const urlInput = document.getElementById('projectUrl');
+            const descInput = document.getElementById('projectDescription');
+
+            const newProject = {
+                name: nameInput.value.trim(),
+                url: urlInput.value.trim(),
+                description: descInput.value.trim(),
+                createdAt: new Date().toISOString()
+            };
+
+            addProjectButton.disabled = true;
+            addProjectButton.textContent = 'Saving...';
+            statusMessage.classList.add('hidden');
+
+            try {
+                await addDoc(getProjectCollectionRef(), newProject);
+
+                // Success
+                statusMessage.textContent = `Project "${newProject.name}" added successfully!`;
+                statusMessage.classList.remove('hidden');
+                statusMessage.classList.add('bg-violet-600');
+
+                // Clear form
+                nameInput.value = '';
+                urlInput.value = '';
+                descInput.value = '';
+
+            } catch (error) {
+                console.error("Error adding document:", error);
+                statusMessage.textContent = `Failed to save project: ${error.message}`;
+                statusMessage.classList.remove('hidden', 'bg-violet-800');
+                statusMessage.classList.add('bg-red-600');
+            } finally {
+                addProjectButton.disabled = false;
+                addProjectButton.textContent = 'Add Project to Hub';
+                setTimeout(() => statusMessage.classList.add('hidden'), 3000); // Hide message after 3 seconds
+            }
+        });
+
+        // Delete Project Function
+        window.deleteProject = async (projectId) => {
+            if (!isAuthReady || !userId) {
+                statusMessage.textContent = "Error: Cannot delete, hub not connected.";
+                statusMessage.classList.remove('hidden', 'bg-violet-800');
+                statusMessage.classList.add('bg-red-600');
+                setTimeout(() => statusMessage.classList.add('hidden'), 3000);
+                return;
+            }
+
+            try {
+                const projectDocRef = doc(getProjectCollectionRef(), projectId);
+                await deleteDoc(projectDocRef);
+                statusMessage.textContent = `Project deleted successfully!`;
+                statusMessage.classList.remove('hidden', 'bg-red-600');
+                statusMessage.classList.add('bg-violet-600');
+                setTimeout(() => statusMessage.classList.add('hidden'), 3000);
+            } catch (error) {
+                console.error("Error deleting project:", error);
+                statusMessage.textContent = `Failed to delete project: ${error.message}`;
+                statusMessage.classList.remove('hidden', 'bg-violet-800');
+                statusMessage.classList.add('bg-red-600');
+            }
+        };
+
+        // --- UI Rendering and Event Handling ---
+
+        const renderProjectCard = (project) => {
+            const cardHtml = `
+                <div class="bg-gray-700 p-4 rounded-xl shadow-lg border border-gray-600 flex flex-col justify-between hover:shadow-violet-500/50 transition duration-300">
+                    <div>
+                        <h3 class="text-xl font-extrabold text-white truncate mb-1" title="${project.name}">${project.name}</h3>
+                        <p class="text-gray-400 text-sm italic mb-3 line-clamp-2">${project.description}</p>
+                    </div>
+                    <div class="flex space-x-2 mt-auto">
+                        <button class="launch-btn flex-grow py-2 px-3 bg-violet-600 text-white font-semibold rounded-lg shadow-md hover:bg-violet-700 transition duration-200" data-url="${project.url}" data-title="${project.name}">
+                            Launch Project 🚀
+                        </button>
+                        <button onclick="deleteProject('${project.id}')" class="p-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition duration-200" title="Delete Project">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+            projectsList.insertAdjacentHTML('beforeend', cardHtml);
+        };
+
+        const attachEventListeners = () => {
+            document.querySelectorAll('.launch-btn').forEach(button => {
+                // Remove previous listeners to prevent duplicates
+                button.replaceWith(button.cloneNode(true));
+            });
+
+            document.querySelectorAll('.launch-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const url = e.currentTarget.getAttribute('data-url');
+                    const title = e.currentTarget.getAttribute('data-title');
+                    launchProject(url, title);
+                });
+            });
+        };
+
+        const launchProject = (url, title) => {
+            if (!url) {
+                console.error("Attempted to launch project with empty URL.");
+                statusMessage.textContent = "Error: Cannot launch. Project URL is missing.";
+                statusMessage.classList.remove('hidden', 'bg-violet-800');
+                statusMessage.classList.add('bg-red-600');
+                setTimeout(() => statusMessage.classList.add('hidden'), 3000);
+                return;
+            }
+            projectPlayer.src = url;
+            currentProjectTitle.textContent = title;
+        };
+
+        // --- Fullscreen Feature ---
+
+        const fullscreenModal = document.getElementById('fullscreenModal');
+        const fullscreenPlayer = document.getElementById('fullscreenPlayer');
+        const fullscreenTitle = document.getElementById('fullscreenTitle');
+
+        window.toggleFullscreen = () => {
+            const currentUrl = projectPlayer.src;
+            const currentTitle = currentProjectTitle.textContent;
+
+            if (currentUrl === 'about:blank' || currentTitle === 'No project loaded') {
+                statusMessage.textContent = "Please launch a project first!";
+                statusMessage.classList.remove('hidden', 'bg-violet-800');
+                statusMessage.classList.add('bg-red-600');
+                setTimeout(() => statusMessage.classList.add('hidden'), 3000);
+                return;
+            }
+
+            fullscreenPlayer.src = currentUrl;
+            fullscreenTitle.textContent = currentTitle;
+            fullscreenModal.classList.remove('hidden');
+        };
+
+        window.exitFullscreen = () => {
+            fullscreenModal.classList.add('hidden');
+            fullscreenPlayer.src = 'about:blank'; // Clear the modal iframe
+        };
+
+        // If no passcode is set, skip the screen and initialize directly
+        window.onload = function() {
+            // Note: We always show the auth screen first, as the user requested a passcode feature.
+            // If the user hasn't entered the code, the appContainer remains hidden.
         }
 
-        ctx.fillStyle = "#e74c3c";
-        ctx.fillRect(food.x, food.y, box, box);
-
-        let snakeX = snake[0].x;
-        let snakeY = snake[0].y;
-
-        if(direction === "LEFT") snakeX -= box;
-        if(direction === "UP") snakeY -= box;
-        if(direction === "RIGHT") snakeX += box;
-        if(direction === "DOWN") snakeY += box;
-
-        if(snakeX === food.x && snakeY === food.y) {
-          score++;
-          scoreEl.textContent = "Score: " + score;
-          food = {x: Math.floor(Math.random()*19+1)*box, y: Math.floor(Math.random()*19+1)*box};
-        } else {
-          snake.pop();
-        }
-
-        let newHead = {x: snakeX, y: snakeY};
-
-        if(snakeX<0 || snakeY<0 || snakeX>=canvas.width || snakeY>=canvas.height || snake.some(p => p.x===newHead.x && p.y===newHead.y)) {
-          clearInterval(gameInterval);
-          alert("Game Over! Score: " + score);
-          backToMenu();
-        }
-
-        snake.unshift(newHead);
-      }
-
-      gameInterval = setInterval(drawSnake, 100);
-    }
-
-    /* ---------------- PONG GAME ---------------- */
-    function startPong() {
-      menu.style.display = "none";
-      canvas.style.display = "block";
-      scoreEl.textContent = "Move with ↑ and ↓ keys";
-
-      let paddleHeight = 80, paddleWidth = 10;
-      let leftY = canvas.height/2 - paddleHeight/2;
-      let rightY = canvas.height/2 - paddleHeight/2;
-      let ballX = canvas.width/2, ballY = canvas.height/2;
-      let ballRadius = 8;
-      let ballSpeedX = 4, ballSpeedY = 2;
-      let upPressed = false, downPressed = false;
-
-      document.onkeydown = e => { if(e.key==="ArrowUp") upPressed=true; if(e.key==="ArrowDown") downPressed=true; };
-      document.onkeyup = e => { if(e.key==="ArrowUp") upPressed=false; if(e.key==="ArrowDown") downPressed=false; };
-
-      function drawPong() {
-        ctx.fillStyle = "#000";
-        ctx.fillRect(0,0,canvas.width,canvas.height);
-
-        // left paddle
-        ctx.fillStyle = "#27ae60";
-        ctx.fillRect(0,leftY,paddleWidth,paddleHeight);
-        // right paddle
-        ctx.fillStyle = "#e67e22";
-        ctx.fillRect(canvas.width-paddleWidth,rightY,paddleWidth,paddleHeight);
-
-        // ball
-        ctx.beginPath();
-        ctx.arc(ballX, ballY, ballRadius, 0, Math.PI*2);
-        ctx.fillStyle = "#ecf0f1";
-        ctx.fill();
-
-        // move paddles
-        if(upPressed && leftY>0) leftY -= 5;
-        if(downPressed && leftY<canvas.height-paddleHeight) leftY += 5;
-
-        // simple AI for right paddle
-        if(rightY + paddleHeight/2 < ballY) rightY += 3;
-        else rightY -= 3;
-
-        // move ball
-        ballX += ballSpeedX;
-        ballY += ballSpeedY;
-
-        if(ballY+ballRadius>canvas.height || ballY-ballRadius<0) ballSpeedY = -ballSpeedY;
-
-        // paddle collisions
-        if(ballX-ballRadius< paddleWidth && ballY>leftY && ballY<leftY+paddleHeight) ballSpeedX = -ballSpeedX;
-        if(ballX+ballRadius>canvas.width-paddleWidth && ballY>rightY && ballY<rightY+paddleHeight) ballSpeedX = -ballSpeedX;
-
-        // out of bounds
-        if(ballX<0 || ballX>canvas.width) {
-          clearInterval(gameInterval);
-          alert("Game Over!");
-          backToMenu();
-        }
-      }
-
-      gameInterval = setInterval(drawPong, 30);
-    }
-
-    /* ---------------- TIC-TAC-TOE ---------------- */
-    function startTicTacToe() {
-      menu.style.display = "none";
-      canvas.style.display = "block";
-      scoreEl.textContent = "Click to place X or O";
-
-      let board = Array(9).fill(null);
-      let currentPlayer = "X";
-
-      canvas.onclick = function(evt) {
-        let rect = canvas.getBoundingClientRect();
-        let x = evt.clientX - rect.left;
-        let y = evt.clientY - rect.top;
-        let col = Math.floor(x / (canvas.width/3));
-        let row = Math.floor(y / (canvas.height/3));
-        let index = row*3+col;
-
-        if(!board[index]) {
-          board[index] = currentPlayer;
-          currentPlayer = (currentPlayer==="X") ? "O" : "X";
-          drawTicTacToe();
-        }
-      };
-
-      function drawTicTacToe() {
-        ctx.fillStyle = "#000";
-        ctx.fillRect(0,0,canvas.width,canvas.height);
-
-        ctx.strokeStyle = "#ecf0f1";
-        ctx.lineWidth = 4;
-
-        for(let i=1;i<3;i++){
-          ctx.beginPath();
-          ctx.moveTo(i*canvas.width/3,0);
-          ctx.lineTo(i*canvas.width/3,canvas.height);
-          ctx.stroke();
-
-          ctx.beginPath();
-          ctx.moveTo(0,i*canvas.height/3);
-          ctx.lineTo(canvas.width,i*canvas.height/3);
-          ctx.stroke();
-        }
-
-        ctx.font = "80px Arial";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        for(let i=0;i<9;i++){
-          if(board[i]){
-            let row = Math.floor(i/3);
-            let col = i%3;
-            ctx.fillStyle = (board[i]==="X")?"#e74c3c":"#3498db";
-            ctx.fillText(board[i], col*canvas.width/3+canvas.width/6, row*canvas.height/3+canvas.height/6);
-          }
-        }
-
-        let winner = checkWinner();
-        if(winner){
-          setTimeout(()=>{
-            alert(winner+" wins!");
-            backToMenu();
-          },100);
-        } else if(board.every(cell=>cell)){
-          setTimeout(()=>{
-            alert("It's a draw!");
-            backToMenu();
-          },100);
-        }
-      }
-
-      function checkWinner(){
-        const wins=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-        for(let combo of wins){
-          let [a,b,c]=combo;
-          if(board[a] && board[a]===board[b] && board[a]===board[c]) return board[a];
-        }
-        return null;
-      }
-
-      drawTicTacToe();
-    }
-  </script>
+    </script>
 </body>
 </html>
